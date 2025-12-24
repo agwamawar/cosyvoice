@@ -1,0 +1,78 @@
+# =============================================================================
+# TTS Backend Development Dockerfile
+# =============================================================================
+# Based on python:3.11-slim for lightweight development image
+# Designed for volume mounting - source code is not copied
+# =============================================================================
+
+FROM python:3.11-slim
+
+LABEL maintainer="TTS Backend Team"
+LABEL description="Development image for TTS Backend with CosyVoice"
+
+# -----------------------------------------------------------------------------
+# Environment variables
+# -----------------------------------------------------------------------------
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    # App settings
+    ENVIRONMENT=dev \
+    DEBUG=true \
+    USE_MOCK=true \
+    LOG_LEVEL=DEBUG
+
+# -----------------------------------------------------------------------------
+# Install system dependencies
+# -----------------------------------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Build tools
+    build-essential \
+    # Audio processing
+    ffmpeg \
+    libsndfile1 \
+    libsox-dev \
+    # Utilities
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# -----------------------------------------------------------------------------
+# Install Python dependencies
+# -----------------------------------------------------------------------------
+# Install Poetry for dependency management
+RUN pip install --upgrade pip && \
+    pip install poetry==1.7.1
+
+# Configure Poetry to not create virtual environments
+RUN poetry config virtualenvs.create false
+
+# Set working directory
+WORKDIR /app
+
+# Copy only dependency files (for caching)
+COPY pyproject.toml poetry.lock* ./
+
+# Install all dependencies including dev
+RUN poetry install --no-interaction --no-ansi --no-root
+
+# -----------------------------------------------------------------------------
+# Create directories
+# -----------------------------------------------------------------------------
+RUN mkdir -p /app/src /app/voices /app/models /app/logs
+
+# NOTE: Source code is NOT copied - it will be volume mounted in development
+# This allows for hot reloading without rebuilding the image
+
+# -----------------------------------------------------------------------------
+# Expose port
+# -----------------------------------------------------------------------------
+EXPOSE 8000
+
+# -----------------------------------------------------------------------------
+# Default command with hot reload
+# -----------------------------------------------------------------------------
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

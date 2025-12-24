@@ -1,0 +1,93 @@
+# =============================================================================
+# TTS Backend - Production Docker Compose
+# =============================================================================
+# Usage:
+#   docker compose -f docker/docker-compose.prod.yml up --build -d
+#   docker compose -f docker/docker-compose.prod.yml logs -f
+#
+# For RunPod deployment, use this as a base configuration.
+# =============================================================================
+
+version: "3.8"
+
+services:
+  tts-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: tts-backend-prod
+    image: tts-backend:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount models directory (persistent storage for model weights)
+      - models:/app/models
+      # Mount voices directory (persistent storage for cloned voices)
+      - voices:/app/voices
+      # Mount logs directory
+      - logs:/app/logs
+    environment:
+      # Application settings
+      - ENVIRONMENT=prod
+      - DEBUG=false
+      - APP_NAME=TTS Backend
+      # Disable mock mode for production
+      - USE_MOCK=false
+      - COSYVOICE_USE_MOCK=false
+      # Logging
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      # Server settings
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+      - SERVER_WORKERS=1
+      # Model settings
+      - MODEL_PATH=/app/models/cosyvoice
+      - MODEL_DEVICE=cuda
+      - COSYVOICE_DEVICE=cuda
+      - COSYVOICE_DTYPE=float16
+      # Paths
+      - VOICES_DIRECTORY=/app/voices
+      # API settings
+      - API_AUTH_ENABLED=true
+      # Model download (set MODEL_URL to download on startup)
+      - DOWNLOAD_MODEL=false
+    env_file:
+      - ../.env.prod
+    # GPU reservation for NVIDIA
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+        reservations:
+          memory: 8G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: always
+    networks:
+      - tts-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+networks:
+  tts-network:
+    driver: bridge
+
+volumes:
+  models:
+    driver: local
+  voices:
+    driver: local
+  logs:
+    driver: local

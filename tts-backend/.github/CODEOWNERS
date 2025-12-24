@@ -1,0 +1,16 @@
+# Code Owners
+# These owners will be requested for review when someone opens a pull request.
+
+# Default owners for everything in the repo
+* @your-username
+
+# API related changes
+/src/api/ @your-username
+
+# Core TTS functionality
+/src/core/ @your-username
+/src/models/ @your-username
+
+# Infrastructure
+/docker/ @your-username
+/.github/ @your-username

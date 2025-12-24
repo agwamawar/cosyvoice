@@ -1,0 +1,64 @@
+# =============================================================================
+# TTS Backend - Development Docker Compose
+# =============================================================================
+# Usage:
+#   docker compose -f docker/docker-compose.yml up --build
+#   docker compose -f docker/docker-compose.yml up -d
+# =============================================================================
+
+version: "3.8"
+
+services:
+  tts-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: tts-backend-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for hot reloading
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      # Mount voices directory (read-write for cloning)
+      - ../voices:/app/voices
+      # Mount .env file if exists
+      - ../.env:/app/.env:ro
+    environment:
+      # Application settings
+      - ENVIRONMENT=dev
+      - DEBUG=true
+      - APP_NAME=TTS Backend Dev
+      # Use mock mode by default for development
+      - USE_MOCK=true
+      - COSYVOICE_USE_MOCK=true
+      # Logging
+      - LOG_LEVEL=DEBUG
+      - LOG_FORMAT=pretty
+      # Server settings
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+      - SERVER_RELOAD=true
+      # Paths
+      - VOICES_DIRECTORY=/app/voices
+      - MODEL_PATH=/app/models/cosyvoice
+      # API settings (auth disabled for dev)
+      - API_AUTH_ENABLED=false
+    env_file:
+      - ../.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - tts-network
+
+networks:
+  tts-network:
+    driver: bridge
+
+volumes:
+  voices:

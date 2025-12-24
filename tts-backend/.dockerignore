@@ -1,0 +1,44 @@
+# Docker Ignore File
+# Exclude from Docker build context
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+.venv
+venv/
+
+# Documentation
+*.md
+docs/
+
+# Testing
+tests/
+.pytest_cache
+.coverage
+
+# Linting/Type checking
+.mypy_cache
+.ruff_cache
+
+# IDE
+.vscode/
+.idea/
+
+# Models (mounted at runtime)
+models/
+
+# Voices (mounted at runtime)
+voices/
+
+# Logs
+logs/
+*.log

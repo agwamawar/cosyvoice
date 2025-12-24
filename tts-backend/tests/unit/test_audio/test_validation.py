@@ -1,7 +1,8 @@
 """Tests for audio validation."""
 
 from src.audio.formats import AudioFormat, detect_format_from_bytes
-from src.audio.validation import AudioValidator, AudioRequirements
+from src.audio.validation import AudioRequirements, AudioValidator
+
 from tests.factories import create_audio_sample
 
 

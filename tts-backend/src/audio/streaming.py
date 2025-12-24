@@ -12,7 +12,7 @@ from collections.abc import Generator, Iterator
 import torch
 import torchaudio
 
-from src.audio.formats import AudioFormat
+from src.audio.formats import AudioFormat  # noqa: F401 - used in type hints
 from src.utils.logging import get_logger
 
 logger = get_logger("audio")

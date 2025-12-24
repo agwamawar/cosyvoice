@@ -2,9 +2,9 @@
 
 from src.api.models.requests import (
     CloneVoiceRequest,
+    StreamingSynthesisRequest,
     SynthesisRequest,
     SynthesizeRequest,
-    StreamingSynthesisRequest,
     VoiceUploadRequest,
 )
 from src.api.models.responses import (

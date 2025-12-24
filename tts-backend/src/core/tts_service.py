@@ -28,6 +28,7 @@ from src.core.interfaces import (
 )
 from src.core.models import (
     CloneVoiceRequest,
+    EngineHealthResponse,
     SynthesisRequest,
     SynthesisResponse,
 )

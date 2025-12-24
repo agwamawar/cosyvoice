@@ -347,7 +347,7 @@ def setup_logging(
     system_logger = get_logger("system")
     system_logger.info(
         "Logging initialized",
-        level=level,
-        format=format,
+        log_level=level,
+        log_format=format,
         service=service_name,
     )

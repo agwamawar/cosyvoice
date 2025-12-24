@@ -12,7 +12,7 @@ import struct
 import wave
 from typing import Any, Literal
 
-from src.core.interfaces import VoiceInfo
+from src.core.interfaces import AudioResult, VoiceInfo
 
 
 # -----------------------------------------------------------------------------
@@ -167,3 +167,25 @@ def create_synthesis_request(**kwargs: Any) -> dict[str, Any]:
 def create_voice_info(**kwargs: Any) -> VoiceInfo:
     """Convenience function to create voice info."""
     return VoiceInfoFactory.create(**kwargs)
+
+
+def create_voice(**kwargs: Any) -> VoiceInfo:
+    """Alias for create_voice_info."""
+    return VoiceInfoFactory.create(**kwargs)
+
+
+def create_audio_result(
+    duration_seconds: float = 1.0,
+    sample_rate: int = 22050,
+    format: str = "wav",
+    channels: int = 1,
+) -> AudioResult:
+    """Create an AudioResult for testing."""
+    audio_data = create_audio_sample(duration=duration_seconds, sample_rate=sample_rate)
+    return AudioResult(
+        audio_data=audio_data,
+        format=format,
+        sample_rate=sample_rate,
+        duration_seconds=duration_seconds,
+        channels=channels,
+    )

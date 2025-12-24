@@ -61,7 +61,7 @@ async def tts_exception_handler(
     logger.warning(
         "TTS exception",
         error_code=exc.error_code,
-        message=exc.message,
+        error_message=exc.message,
         http_status=exc.http_status,
         details=exc.details,
         path=request.url.path,

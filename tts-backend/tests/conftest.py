@@ -68,9 +68,18 @@ def settings() -> Settings:
 # -----------------------------------------------------------------------------
 @pytest.fixture
 async def app(settings: Settings) -> AsyncGenerator[FastAPI, None]:
-    """Create test FastAPI application."""
+    """Create test FastAPI application with initialized TTS service."""
     application = create_app(settings)
+
+    # Initialize the TTS service for testing (simulating lifespan startup)
+    tts_service = TTSService(settings)
+    await tts_service.initialize()
+    application.state.tts_service = tts_service
+
     yield application
+
+    # Cleanup
+    await tts_service.shutdown()
 
 
 @pytest.fixture

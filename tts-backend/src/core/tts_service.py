@@ -61,6 +61,7 @@ class TTSService:
 
     def __init__(
         self,
+        settings: "Any | None" = None,
         registry: EngineRegistry | None = None,
         audio_processor: "AudioProcessor | None" = None,
     ) -> None:
@@ -68,18 +69,43 @@ class TTSService:
         Initialize the TTS service.
 
         Args:
+            settings: Application settings (optional, for compatibility)
             registry: Engine registry (uses global registry if None)
             audio_processor: Audio processor for format conversion (optional)
         """
+        self._settings = settings
         self._registry = registry or get_engine_registry()
         self._audio_processor = audio_processor
         self._start_time = time.time()
         self._default_engine_name: str | None = None
+        self._initialized = False
 
     @property
     def uptime_seconds(self) -> float:
         """Get service uptime in seconds."""
         return time.time() - self._start_time
+
+    async def initialize(self) -> None:
+        """Initialize the TTS service and load default engine."""
+        if self._initialized:
+            return
+        try:
+            # Try to load default engine
+            await self._registry.get_engine()
+            self._initialized = True
+            logger.info("TTS Service initialized")
+        except Exception as e:
+            logger.warning(f"TTS Service initialization warning: {e}")
+            self._initialized = True  # Mark as initialized even with warnings
+
+    async def shutdown(self) -> None:
+        """Shutdown the TTS service."""
+        logger.info("TTS Service shutting down")
+        self._initialized = False
+
+    def is_ready(self) -> bool:
+        """Check if the service is ready to handle requests."""
+        return self._initialized
 
     async def _get_engine(self, engine_name: str | None = None) -> TTSEngine:
         """

@@ -57,6 +57,11 @@ class CosyVoiceEngine(TTSEngine):
         self._loaded = False
 
     @property
+    def name(self) -> str:
+        """Engine name identifier."""
+        return "cosyvoice"
+
+    @property
     def is_loaded(self) -> bool:
         """Check if engine is loaded."""
         return self._loaded

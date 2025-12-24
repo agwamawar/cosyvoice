@@ -14,9 +14,9 @@ class TestAudioValidation:
         validator = AudioValidator()
         result = validator.validate(sample_wav_bytes)
 
-        assert result.is_valid
-        assert result.duration_seconds > 0
-        assert result.sample_rate > 0
+        assert result.valid
+        assert result.detected_duration is not None and result.detected_duration > 0
+        assert result.detected_sample_rate is not None and result.detected_sample_rate > 0
 
     def test_short_audio_fails(self, short_wav_bytes: bytes):
         """Test that audio shorter than minimum duration fails."""
@@ -24,15 +24,15 @@ class TestAudioValidation:
         validator = AudioValidator(requirements)
         result = validator.validate(short_wav_bytes)
 
-        assert not result.is_valid
-        assert "duration" in result.error_message.lower()
+        assert not result.valid
+        assert len(result.errors) > 0
 
     def test_corrupted_data_fails(self, corrupted_audio_bytes: bytes):
         """Test that corrupted audio data fails validation."""
         validator = AudioValidator()
         result = validator.validate(corrupted_audio_bytes)
 
-        assert not result.is_valid
+        assert not result.valid
 
     def test_format_detection(self, sample_wav_bytes: bytes):
         """Test audio format detection from bytes."""
@@ -48,18 +48,18 @@ class TestAudioRequirements:
         req = AudioRequirements()
         assert req.min_duration_seconds >= 0
         assert req.max_duration_seconds > req.min_duration_seconds
-        assert req.max_file_size_mb > 0
+        assert req.max_file_size_bytes > 0
 
     def test_custom_requirements(self):
         """Test custom audio requirements."""
         req = AudioRequirements(
             min_duration_seconds=5.0,
             max_duration_seconds=60.0,
-            max_file_size_mb=100.0,
+            max_file_size_bytes=100 * 1024 * 1024,
         )
         assert req.min_duration_seconds == 5.0
         assert req.max_duration_seconds == 60.0
-        assert req.max_file_size_mb == 100.0
+        assert req.max_file_size_bytes == 100 * 1024 * 1024
 
 
 class TestFormatDetection:

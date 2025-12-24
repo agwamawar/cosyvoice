@@ -3,17 +3,16 @@
 import pytest
 from pydantic import ValidationError
 
-from src.api.models.requests import SynthesisRequest, VoiceUploadRequest
-from src.api.models.responses import HealthResponse, SynthesisResponse
-from src.config.settings import AudioFormat
+from src.api.models.requests import CloneVoiceRequest, SynthesizeRequest
+from src.api.models.responses import HealthResponse, SynthesizeResponse
 
 
-class TestSynthesisRequest:
-    """Tests for SynthesisRequest model."""
+class TestSynthesizeRequest:
+    """Tests for SynthesizeRequest model."""
 
     def test_valid_request(self):
         """Test valid synthesis request."""
-        request = SynthesisRequest(
+        request = SynthesizeRequest(
             text="Hello, world!",
             voice_id="default",
             language="en",
@@ -22,13 +21,12 @@ class TestSynthesisRequest:
         assert request.text == "Hello, world!"
         assert request.voice_id == "default"
         assert request.language == "en"
-        assert request.output_format == AudioFormat.WAV
+        assert request.output_format == "wav"
         assert request.speed == 1.0
-        assert request.pitch == 1.0
 
     def test_text_whitespace_stripped(self):
         """Test that text whitespace is stripped."""
-        request = SynthesisRequest(
+        request = SynthesizeRequest(
             text="  Hello, world!  ",
         )
 
@@ -37,69 +35,56 @@ class TestSynthesisRequest:
     def test_empty_text_rejected(self):
         """Test that empty text is rejected."""
         with pytest.raises(ValidationError):
-            SynthesisRequest(text="")
+            SynthesizeRequest(text="")
 
     def test_whitespace_only_text_rejected(self):
         """Test that whitespace-only text is rejected."""
         with pytest.raises(ValidationError):
-            SynthesisRequest(text="   ")
+            SynthesizeRequest(text="   ")
 
     def test_text_too_long_rejected(self):
         """Test that too-long text is rejected."""
         with pytest.raises(ValidationError):
-            SynthesisRequest(text="x" * 5001)
+            SynthesizeRequest(text="x" * 5001)
 
     def test_speed_bounds(self):
         """Test speed parameter bounds."""
         # Valid speeds
-        SynthesisRequest(text="test", speed=0.5)
-        SynthesisRequest(text="test", speed=2.0)
+        SynthesizeRequest(text="test", speed=0.5)
+        SynthesizeRequest(text="test", speed=2.0)
 
         # Invalid speeds
         with pytest.raises(ValidationError):
-            SynthesisRequest(text="test", speed=0.4)
+            SynthesizeRequest(text="test", speed=0.4)
 
         with pytest.raises(ValidationError):
-            SynthesisRequest(text="test", speed=2.1)
-
-    def test_pitch_bounds(self):
-        """Test pitch parameter bounds."""
-        # Valid pitches
-        SynthesisRequest(text="test", pitch=0.5)
-        SynthesisRequest(text="test", pitch=2.0)
-
-        # Invalid pitches
-        with pytest.raises(ValidationError):
-            SynthesisRequest(text="test", pitch=0.4)
-
-        with pytest.raises(ValidationError):
-            SynthesisRequest(text="test", pitch=2.1)
+            SynthesizeRequest(text="test", speed=2.1)
 
 
-class TestVoiceUploadRequest:
-    """Tests for VoiceUploadRequest model."""
+class TestCloneVoiceRequest:
+    """Tests for CloneVoiceRequest model."""
 
     def test_valid_request(self):
-        """Test valid voice upload request."""
-        request = VoiceUploadRequest(
-            name="My Voice",
+        """Test valid voice clone request."""
+        request = CloneVoiceRequest(
+            voice_name="My Voice",
             description="A custom voice",
             language="en",
         )
 
-        assert request.name == "My Voice"
+        assert request.voice_name == "My Voice"
         assert request.description == "A custom voice"
         assert request.language == "en"
 
     def test_name_stripped(self):
-        """Test that name whitespace is stripped."""
-        request = VoiceUploadRequest(name="  My Voice  ")
-        assert request.name == "My Voice"
+        """Test that voice_name whitespace is stripped."""
+        request = CloneVoiceRequest(voice_name="  My Voice  ")
+        assert request.voice_name == "My Voice"
 
     def test_empty_name_rejected(self):
-        """Test that empty name is rejected."""
+        """Test that empty voice_name is rejected."""
         with pytest.raises(ValidationError):
-            VoiceUploadRequest(name="")
+            CloneVoiceRequest(voice_name="")
 
 
 class TestHealthResponse:
@@ -110,23 +95,19 @@ class TestHealthResponse:
         response = HealthResponse(
             status="healthy",
             version="1.0.0",
-            environment="dev",
-            checks={"model_loaded": True},
         )
 
         assert response.status == "healthy"
         assert response.version == "1.0.0"
-        assert response.environment == "dev"
-        assert response.checks["model_loaded"] is True
         assert response.timestamp is not None
 
 
-class TestSynthesisResponse:
-    """Tests for SynthesisResponse model."""
+class TestSynthesizeResponse:
+    """Tests for SynthesizeResponse model."""
 
     def test_synthesis_response(self):
         """Test synthesis response creation."""
-        response = SynthesisResponse(
+        response = SynthesizeResponse(
             audio_base64="SGVsbG8=",
             duration_seconds=1.5,
             sample_rate=22050,
@@ -134,6 +115,7 @@ class TestSynthesisResponse:
             voice_id="default",
             text_length=100,
             processing_time_ms=50.5,
+            request_id="test-123",
         )
 
         assert response.audio_base64 == "SGVsbG8="
@@ -143,3 +125,4 @@ class TestSynthesisResponse:
         assert response.voice_id == "default"
         assert response.text_length == 100
         assert response.processing_time_ms == 50.5
+        assert response.request_id == "test-123"

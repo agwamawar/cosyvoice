@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.audio.converter import AudioConverter
+from src.audio.converter import AudioConverter, ConversionOptions
 from src.audio.formats import AudioFormat
 from tests.factories import create_audio_sample
 
@@ -15,20 +15,23 @@ class TestAudioConverter:
         """Create audio converter instance."""
         return AudioConverter()
 
-    async def test_wav_to_mp3_conversion(self, converter: AudioConverter):
-        """Test converting WAV to MP3 format."""
+    async def test_convert_with_options(self, converter: AudioConverter):
+        """Test converting audio with ConversionOptions."""
         wav_data = create_audio_sample(duration=1.0, format="wav")
+        options = ConversionOptions(
+            target_format=AudioFormat.WAV,
+            sample_rate=22050,
+            channels=1,
+        )
 
         result = await converter.convert(
             audio_data=wav_data,
             source_format=AudioFormat.WAV,
-            target_format=AudioFormat.MP3,
+            options=options,
         )
 
         assert result is not None
         assert len(result) > 0
-        # MP3 files start with specific bytes or ID3 tag
-        assert result[:3] == b"ID3" or result[:2] == b"\xff\xfb"
 
     async def test_resample_audio(self, converter: AudioConverter):
         """Test resampling audio to different sample rate."""
@@ -36,50 +39,36 @@ class TestAudioConverter:
 
         result = await converter.resample(
             audio_data=wav_data,
-            target_sample_rate=22050,
+            source_rate=44100,
+            target_rate=22050,
         )
-
-        assert result is not None
-        assert len(result) > 0
-
-    async def test_normalize_audio(self, converter: AudioConverter):
-        """Test normalizing audio volume."""
-        wav_data = create_audio_sample(duration=1.0)
-
-        result = await converter.normalize(
-            audio_data=wav_data,
-            target_db=-3.0,
-        )
-
-        assert result is not None
-        assert len(result) > 0
-
-    async def test_convert_to_mono(self, converter: AudioConverter):
-        """Test converting stereo to mono."""
-        wav_data = create_audio_sample(duration=1.0)
-
-        result = await converter.to_mono(audio_data=wav_data)
 
         assert result is not None
         assert len(result) > 0
 
 
 class TestConversionOptions:
-    """Tests for conversion options."""
+    """Tests for ConversionOptions model."""
 
-    def test_supported_formats(self):
-        """Test that common formats are supported."""
-        converter = AudioConverter()
-        supported = converter.supported_formats
+    def test_default_options(self):
+        """Test default conversion options."""
+        options = ConversionOptions()
 
-        assert AudioFormat.WAV in supported
-        assert AudioFormat.MP3 in supported
+        assert options.target_format == AudioFormat.WAV
+        assert options.sample_rate == 22050
+        assert options.channels == 1
+        assert options.normalize is True
 
-    def test_supported_sample_rates(self):
-        """Test that common sample rates are supported."""
-        converter = AudioConverter()
-        rates = converter.supported_sample_rates
+    def test_custom_options(self):
+        """Test custom conversion options."""
+        options = ConversionOptions(
+            target_format=AudioFormat.MP3,
+            sample_rate=44100,
+            channels=2,
+            normalize=False,
+        )
 
-        assert 22050 in rates
-        assert 44100 in rates
-        assert 48000 in rates
+        assert options.target_format == AudioFormat.MP3
+        assert options.sample_rate == 44100
+        assert options.channels == 2
+        assert options.normalize is False

@@ -1,75 +1,52 @@
 """Tests for core models."""
 
-from datetime import datetime
-
-from src.core.interfaces import AudioResult
-from src.core.models import Voice
-from tests.factories import create_audio_result, create_voice
+from src.core.interfaces import AudioResult, VoiceInfo
+from src.core.models import SynthesisRequest, SynthesisResponse
+from tests.factories import create_voice_info
 
 
-class TestVoice:
-    """Tests for Voice model."""
+class TestVoiceInfo:
+    """Tests for VoiceInfo model."""
 
-    def test_voice_creation(self):
-        """Test basic voice creation."""
-        voice = Voice(
-            id="test-voice",
+    def test_voice_info_creation(self):
+        """Test basic VoiceInfo creation."""
+        voice = VoiceInfo(
+            voice_id="test-voice",
             name="Test Voice",
             language="en",
         )
 
-        assert voice.id == "test-voice"
+        assert voice.voice_id == "test-voice"
         assert voice.name == "Test Voice"
         assert voice.language == "en"
-        assert voice.is_custom is False
+        assert voice.is_cloned is False
 
-    def test_voice_factory(self):
-        """Test voice creation via factory."""
-        voice = create_voice(
-            id="custom-id",
+    def test_voice_info_factory(self):
+        """Test VoiceInfo creation via factory."""
+        voice = create_voice_info(
+            voice_id="custom-id",
             name="Custom Name",
             language="zh",
         )
 
-        assert voice.id == "custom-id"
+        assert voice.voice_id == "custom-id"
         assert voice.name == "Custom Name"
         assert voice.language == "zh"
 
-    def test_voice_to_dict(self):
-        """Test voice serialization to dictionary."""
-        voice = Voice(
-            id="test-voice",
+    def test_voice_info_with_gender(self):
+        """Test VoiceInfo with gender field."""
+        voice = VoiceInfo(
+            voice_id="test-voice",
             name="Test Voice",
             language="en",
-            description="A test voice",
             gender="female",
-            tags=["test", "english"],
-            is_custom=True,
-            created_at=datetime(2024, 1, 1, 12, 0, 0),
+            description="A test voice",
+            is_cloned=True,
         )
 
-        result = voice.to_dict()
-
-        assert result["id"] == "test-voice"
-        assert result["name"] == "Test Voice"
-        assert result["language"] == "en"
-        assert result["description"] == "A test voice"
-        assert result["gender"] == "female"
-        assert result["tags"] == ["test", "english"]
-        assert result["is_custom"] is True
-        assert result["created_at"] == "2024-01-01T12:00:00"
-
-    def test_voice_to_dict_none_created_at(self):
-        """Test voice serialization with None created_at."""
-        voice = Voice(
-            id="test-voice",
-            name="Test Voice",
-            language="en",
-            created_at=None,
-        )
-
-        result = voice.to_dict()
-        assert result["created_at"] is None
+        assert voice.gender == "female"
+        assert voice.description == "A test voice"
+        assert voice.is_cloned is True
 
 
 class TestAudioResult:
@@ -88,14 +65,54 @@ class TestAudioResult:
         assert result.sample_rate == 22050
         assert result.duration_seconds == 1.5
         assert result.format == "wav"
-        assert result.channels == 1  # default
 
-    def test_audio_result_factory(self):
-        """Test AudioResult creation via factory."""
-        result = create_audio_result(
-            duration_seconds=2.5,
-            sample_rate=44100,
+    def test_audio_result_with_metadata(self):
+        """Test AudioResult with metadata."""
+        result = AudioResult(
+            audio_data=b"\x00" * 100,
+            sample_rate=22050,
+            duration_seconds=1.5,
+            format="wav",
+            metadata={"voice_id": "default", "text_length": 50},
         )
 
-        assert result.duration_seconds == 2.5
-        assert result.sample_rate == 44100
+        assert result.metadata["voice_id"] == "default"
+        assert result.metadata["text_length"] == 50
+
+
+class TestSynthesisRequest:
+    """Tests for SynthesisRequest model."""
+
+    def test_synthesis_request_creation(self):
+        """Test basic SynthesisRequest creation."""
+        request = SynthesisRequest(
+            text="Hello, world!",
+            voice_id="default",
+        )
+
+        assert request.text == "Hello, world!"
+        assert request.voice_id == "default"
+        assert request.speed == 1.0
+        assert request.language == "en"
+
+
+class TestSynthesisResponse:
+    """Tests for SynthesisResponse model."""
+
+    def test_synthesis_response_creation(self):
+        """Test basic SynthesisResponse creation."""
+        response = SynthesisResponse(
+            audio_base64="SGVsbG8=",
+            format="wav",
+            sample_rate=22050,
+            duration_seconds=1.5,
+            request_id="test-123",
+            voice_id="default",
+            text_length=13,
+            processing_time_ms=50.5,
+        )
+
+        assert response.audio_base64 == "SGVsbG8="
+        assert response.format == "wav"
+        assert response.sample_rate == 22050
+        assert response.duration_seconds == 1.5

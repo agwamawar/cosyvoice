@@ -132,11 +132,12 @@ async def mock_engine() -> AsyncGenerator[CosyVoiceEngine, None]:
 def registry_with_mock() -> EngineRegistry:
     """Get engine registry and register mock engine."""
     registry = EngineRegistry()
-    # Register the mock CosyVoice engine
+    # Register the mock CosyVoice engine with proper config object
+    mock_config = CosyVoiceConfig(use_mock=True)
     registry.register(
         "cosyvoice",
         CosyVoiceEngine,
-        config={"use_mock": True},
+        config={"config": mock_config},
         set_default=True,
     )
     return registry

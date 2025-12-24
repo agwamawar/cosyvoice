@@ -27,6 +27,7 @@ from httpx import ASGITransport, AsyncClient
 from src.api.app import create_app
 from src.audio.processor import AudioProcessor
 from src.config import Settings, get_settings
+from src.core.engine_registry import EngineRegistry
 from src.core.tts_service import TTSService
 from src.models.cosyvoice import CosyVoiceConfig, CosyVoiceEngine
 
@@ -67,12 +68,14 @@ def settings() -> Settings:
 # App and Client Fixtures
 # -----------------------------------------------------------------------------
 @pytest.fixture
-async def app(settings: Settings) -> AsyncGenerator[FastAPI, None]:
+async def app(
+    settings: Settings, registry_with_mock: EngineRegistry
+) -> AsyncGenerator[FastAPI, None]:
     """Create test FastAPI application with initialized TTS service."""
     application = create_app(settings)
 
     # Initialize the TTS service for testing (simulating lifespan startup)
-    tts_service = TTSService(settings)
+    tts_service = TTSService(settings, registry=registry_with_mock)
     await tts_service.initialize()
     application.state.tts_service = tts_service
 
@@ -125,13 +128,29 @@ async def mock_engine() -> AsyncGenerator[CosyVoiceEngine, None]:
     await engine.unload()
 
 
+@pytest.fixture
+def registry_with_mock() -> EngineRegistry:
+    """Get engine registry and register mock engine."""
+    registry = EngineRegistry()
+    # Register the mock CosyVoice engine
+    registry.register(
+        "cosyvoice",
+        CosyVoiceEngine,
+        config={"use_mock": True},
+        set_default=True,
+    )
+    return registry
+
+
 # -----------------------------------------------------------------------------
 # Service Fixtures
 # -----------------------------------------------------------------------------
 @pytest.fixture
-async def tts_service(settings: Settings) -> AsyncGenerator[TTSService, None]:
+async def tts_service(
+    settings: Settings, registry_with_mock: EngineRegistry
+) -> AsyncGenerator[TTSService, None]:
     """Create TTS service with mock engine."""
-    service = TTSService(settings)
+    service = TTSService(settings, registry=registry_with_mock)
     await service.initialize()
     yield service
     await service.shutdown()

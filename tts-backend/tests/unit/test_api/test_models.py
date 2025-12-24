@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.api.models.requests import SynthesisRequest, VoiceUploadRequest
-from src.api.models.responses import HealthResponse, SynthesisResponse, VoiceResponse
+from src.api.models.responses import HealthResponse, SynthesisResponse
 from src.config.settings import AudioFormat
 
 

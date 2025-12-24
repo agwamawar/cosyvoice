@@ -9,7 +9,7 @@ Provides:
 import asyncio
 import threading
 from dataclasses import dataclass, field
-from typing import Any, Type
+from typing import Any
 
 from src.core.interfaces import TTSEngine
 from src.utils.logging import get_logger
@@ -21,7 +21,7 @@ logger = get_logger("system")
 class EngineRegistration:
     """Registration info for a TTS engine."""
 
-    engine_class: Type[TTSEngine]
+    engine_class: type[TTSEngine]
     config: dict[str, Any] = field(default_factory=dict)
     description: str = ""
 
@@ -72,7 +72,7 @@ class EngineRegistry:
     def register(
         self,
         name: str,
-        engine_class: Type[TTSEngine],
+        engine_class: type[TTSEngine],
         config: dict[str, Any] | None = None,
         description: str = "",
         set_default: bool = False,
@@ -121,7 +121,7 @@ class EngineRegistry:
                 ...
         """
 
-        def decorator(engine_class: Type[TTSEngine]) -> Type[TTSEngine]:
+        def decorator(engine_class: type[TTSEngine]) -> type[TTSEngine]:
             self.register(name, engine_class, config, set_default=set_default)
             return engine_class
 

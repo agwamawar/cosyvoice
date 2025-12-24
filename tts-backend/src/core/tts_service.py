@@ -9,7 +9,7 @@ Provides:
 import base64
 import time
 import uuid
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from src.api.exceptions import (
     AudioProcessingError,
@@ -21,22 +21,15 @@ from src.api.exceptions import (
 )
 from src.core.engine_registry import EngineRegistry, get_engine_registry
 from src.core.interfaces import (
-    AudioResult,
     AudioSample,
-    EngineCapabilities,
-    HealthStatus,
     SynthesisOptions,
     TTSEngine,
     VoiceInfo,
 )
 from src.core.models import (
     CloneVoiceRequest,
-    EngineHealthResponse,
-    ServiceHealthResponse,
     SynthesisRequest,
     SynthesisResponse,
-    VoiceInfoResponse,
-    VoiceListResponse,
 )
 from src.utils.logging import get_logger
 from src.utils.timing import Timer

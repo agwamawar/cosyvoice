@@ -10,7 +10,6 @@ import io
 import math
 import struct
 import wave
-from datetime import datetime
 from typing import Any, Literal
 
 from src.core.interfaces import VoiceInfo

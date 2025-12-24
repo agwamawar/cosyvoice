@@ -142,7 +142,7 @@ class VoiceManager:
         if not config_path.exists():
             return None
 
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config = json.load(f)
 
         voice_id = config.get("id", voice_dir.name)

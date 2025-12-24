@@ -1,15 +1,13 @@
 """Tests for API exceptions."""
 
-import pytest
-
 from src.api.exceptions import (
-    TTSBaseException,
-    ValidationError,
-    VoiceNotFoundError,
     InvalidAPIKeyError,
     MissingAPIKeyError,
     ModelNotLoadedError,
     SynthesisError,
+    TTSBaseException,
+    ValidationError,
+    VoiceNotFoundError,
 )
 
 
@@ -22,9 +20,9 @@ class TestExceptionToResponseFormat:
             message="Invalid input",
             details={"field": "text", "reason": "too short"},
         )
-        
+
         response = error.to_response()
-        
+
         assert response["error"]["code"] == error.error_code
         assert response["error"]["message"] == "Invalid input"
         assert "field" in response["error"]["details"]
@@ -32,9 +30,9 @@ class TestExceptionToResponseFormat:
     def test_voice_not_found_format(self):
         """Test VoiceNotFoundError includes voice_id."""
         error = VoiceNotFoundError("voice-123")
-        
+
         response = error.to_response()
-        
+
         assert "voice-123" in response["error"]["message"]
         assert response["error"]["code"] == "VOICE_NOT_FOUND"
 
@@ -44,9 +42,9 @@ class TestExceptionToResponseFormat:
             message="Something went wrong",
             error_code="GENERIC_ERROR",
         )
-        
+
         response = error.to_response()
-        
+
         assert "error" in response
         assert "code" in response["error"]
         assert "message" in response["error"]
@@ -99,9 +97,9 @@ class TestExceptionErrorCodes:
             ModelNotLoadedError(),
             SynthesisError("test"),
         ]
-        
+
         codes = [e.error_code for e in exceptions]
-        
+
         # All codes should be unique
         assert len(codes) == len(set(codes))
 
@@ -112,7 +110,7 @@ class TestExceptionErrorCodes:
             VoiceNotFoundError("test"),
             InvalidAPIKeyError(),
         ]
-        
+
         for exc in exceptions:
             assert exc.error_code == exc.error_code.upper()
             assert "_" in exc.error_code or exc.error_code.isalpha()

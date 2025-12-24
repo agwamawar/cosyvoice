@@ -41,7 +41,7 @@ class TestHealthEndpoints:
         """Test health endpoints don't require authentication."""
         # All health endpoints should work without X-API-Key
         endpoints = ["/health", "/health/ready", "/health/live"]
-        
+
         for endpoint in endpoints:
             response = await client.get(endpoint)
             assert response.status_code == 200, f"{endpoint} should not require auth"

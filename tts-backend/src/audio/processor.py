@@ -5,10 +5,6 @@ Provides:
 - AudioProcessor class combining validator and converter
 """
 
-import io
-
-import torch
-import torchaudio
 from pydantic import BaseModel, Field
 
 from src.audio.converter import AudioConverter, ConversionOptions

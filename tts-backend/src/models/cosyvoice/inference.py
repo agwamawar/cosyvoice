@@ -6,7 +6,8 @@ Provides:
 """
 
 import math
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import torch
 

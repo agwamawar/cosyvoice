@@ -39,7 +39,7 @@ ABBREVIATIONS_EN = {
 
 # Number words
 ONES = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
-TEENS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", 
+TEENS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
          "sixteen", "seventeen", "eighteen", "nineteen"]
 TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
 SCALES = ["", "thousand", "million", "billion", "trillion"]
@@ -149,7 +149,7 @@ class TextPreprocessor:
                     parts = num_str.split(".")
                     integer_part = number_to_words(int(parts[0]))
                     decimal_part = " ".join(
-                        number_to_words(int(d)) if d != "0" else "zero" 
+                        number_to_words(int(d)) if d != "0" else "zero"
                         for d in parts[1]
                     )
                     return f"{integer_part} point {decimal_part}"

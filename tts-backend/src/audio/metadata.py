@@ -11,7 +11,7 @@ from pathlib import Path
 import torchaudio
 from pydantic import BaseModel, Field
 
-from src.audio.formats import AudioFormat, detect_format_from_bytes, format_from_extension
+from src.audio.formats import AudioFormat, detect_format_from_bytes
 from src.utils.logging import get_logger
 
 logger = get_logger("audio")

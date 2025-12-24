@@ -11,7 +11,7 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from src.api.dependencies import APIKeyDep, RequestIdDep, TTSServiceDep
+from src.api.dependencies import APIKeyDep, TTSServiceDep
 from src.api.exceptions import VoiceNotFoundError
 from src.api.models.requests import SynthesizeRequest
 from src.api.models.responses import SynthesizeResponse

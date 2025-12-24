@@ -7,12 +7,10 @@ Provides:
 
 import io
 import struct
-from collections.abc import Iterator
-from typing import Generator
+from collections.abc import Generator, Iterator
 
 import torch
 import torchaudio
-from pydantic import BaseModel, Field
 
 from src.audio.formats import AudioFormat
 from src.utils.logging import get_logger

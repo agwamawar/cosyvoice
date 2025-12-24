@@ -8,11 +8,11 @@ Provides:
 
 import asyncio
 import functools
-import inspect
 import time
+from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Callable, Coroutine, ParamSpec, TypeVar, overload
+from typing import Any, ParamSpec, TypeVar
 
 from src.utils.logging import get_logger
 

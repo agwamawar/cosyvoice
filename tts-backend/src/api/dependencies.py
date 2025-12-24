@@ -65,7 +65,7 @@ async def verify_api_key(
     if not x_api_key:
         raise MissingAPIKeyError()
 
-    if x_api_key not in settings.api.keys:
+    if x_api_key not in settings.api.api_keys:
         raise InvalidAPIKeyError()
 
     return x_api_key

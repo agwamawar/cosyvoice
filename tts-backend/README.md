@@ -1,70 +1,58 @@
 # TTS Backend Service
 
-A high-performance Text-to-Speech backend service powered by **CosyVoice 3** and **FastAPI**, designed for production deployment on GPU instances.
-
-[![CI](https://github.com/your-username/tts-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/tts-backend/actions/workflows/ci.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+A high-performance Text-to-Speech backend service powered by CosyVoice 3 and FastAPI. Designed for easy local development with mock mode and production deployment on GPU instances like RunPod.
 
 ## Features
 
-- **CosyVoice 3 Integration** - State-of-the-art neural TTS synthesis
-- **Voice Cloning** - Clone voices from audio samples
-- **Multiple Output Formats** - WAV, MP3, OGG, FLAC
-- **Streaming Audio** - Real-time audio streaming support
-- **FastAPI Backend** - High-performance async API with OpenAPI docs
-- **Mock Mode** - Development without GPU requirements
-- **Docker Ready** - Production-ready containerization
-- **GPU Optimized** - CUDA support for fast inference
+- **CosyVoice 3 Integration**: State-of-the-art neural TTS synthesis
+- **FastAPI Backend**: High-performance async API with OpenAPI docs
+- **Multiple Output Formats**: WAV, MP3, OGG, FLAC support
+- **Voice Cloning**: Clone voices from audio samples
+- **Streaming Audio**: Real-time chunked audio streaming
+- **Mock Mode**: Full development workflow without GPU
+- **Docker Ready**: Production and development Dockerfiles
+- **CI/CD**: GitHub Actions for testing and Docker builds
 
 ## Quick Start
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/your-username/tts-backend.git
 cd tts-backend
 ```
 
-### 2. Run the setup script
+### 2. Run Setup Script
 
 ```bash
 ./scripts/setup.sh
 ```
 
-Or manually:
-```bash
-poetry install
-poetry run pre-commit install
-cp .env.example .env
-```
-
-### 3. Start the development server
+### 3. Start Development Server
 
 ```bash
 make dev
 ```
 
-### 4. Open the API documentation
+### 4. Open API Documentation
 
-Visit **http://localhost:8000/docs** for the interactive Swagger UI.
+Visit [http://localhost:8000/docs](http://localhost:8000/docs) for the interactive API docs.
 
 ## Development
 
-### Available Make Commands
+### Make Commands
 
-| Command | Description |
-|---------|-------------|
-| `make dev` | Start development server with hot reload |
-| `make run` | Start production server |
-| `make test` | Run all tests |
-| `make test-unit` | Run unit tests only |
-| `make test-integration` | Run integration tests |
-| `make test-coverage` | Run tests with coverage report |
-| `make lint` | Run ruff linter |
-| `make format` | Format code with ruff |
-| `make type-check` | Run mypy type checker |
-| `make check` | Run all code quality checks |
+```bash
+make install       # Install production dependencies
+make dev           # Run dev server with hot reload
+make test          # Run all tests
+make test-unit     # Run unit tests only
+make test-coverage # Run tests with coverage report
+make lint          # Run ruff linter
+make format        # Format code with ruff
+make type-check    # Run mypy type checker
+make clean         # Remove cache files
+```
 
 ### Testing
 
@@ -75,135 +63,119 @@ make test
 # Run unit tests only
 make test-unit
 
-# Run with coverage report
+# Run integration tests
+make test-integration
+
+# Generate coverage report
 make test-coverage
-
-# Run specific test file
-poetry run pytest tests/unit/test_audio/test_validation.py -v
+# Coverage report available at htmlcov/index.html
 ```
 
-### Code Quality
+### Linting & Formatting
 
 ```bash
-# Run all checks before committing
-make check
+# Check for issues
+make lint
 
-# Or run pre-commit on all files
-poetry run pre-commit run --all-files
+# Auto-fix and format
+make format
+
+# Type checking
+make type-check
 ```
-
-## API Overview
-
-### Health Endpoints (No Auth Required)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Service health status |
-| `/health/ready` | GET | Readiness probe (model loaded) |
-| `/health/live` | GET | Liveness probe |
-
-### Voice Endpoints (Auth Required)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/v1/voices` | GET | List available voices |
-| `/v1/voices/{voice_id}` | GET | Get voice details |
-| `/v1/voices/clone` | POST | Clone voice from audio |
-| `/v1/voices/{voice_id}` | DELETE | Delete cloned voice |
-
-### Synthesis Endpoints (Auth Required)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/v1/tts/synthesize` | POST | Synthesize speech (file download) |
-| `/v1/tts/synthesize/json` | POST | Synthesize speech (base64 JSON) |
-| `/v1/tts/synthesize/stream` | POST | Streaming synthesis |
-
-### Authentication
-
-Protected endpoints require the `X-API-Key` header:
-```bash
-curl -X POST http://localhost:8000/v1/tts/synthesize \
-  -H "X-API-Key: your-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Hello, world!", "voice_id": "default"}'
-```
-
-## Configuration
-
-All configuration is done via environment variables. See [`.env.example`](.env.example) for all available options.
-
-### Key Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ENVIRONMENT` | Environment (dev/staging/prod) | `dev` |
-| `DEBUG` | Enable debug mode | `false` |
-| `MODEL_USE_MOCK` | Use mock engine (no GPU) | `true` |
-| `MODEL_PATH` | Path to CosyVoice model | `./models/cosyvoice` |
-| `MODEL_DEVICE` | Device (cuda/cpu/auto) | `auto` |
-| `API_KEYS` | Comma-separated API keys | `` |
-| `LOG_LEVEL` | Logging level | `INFO` |
 
 ## Deployment
 
-### Docker (Development)
-
-```bash
-# Build and start
-make docker-build-dev
-make docker-up
-
-# View logs
-make docker-logs
-
-# Stop services
-make docker-down
-```
-
-### Docker (Production)
+### Docker
 
 ```bash
 # Build production image
 make docker-build
 
-# Run with GPU support
-docker run --gpus all -p 8000:8000 \
-  -e MODEL_USE_MOCK=false \
-  -e API_KEYS=your-secret-key \
-  tts-backend:latest
+# Build development image
+make docker-build-dev
+
+# Run with docker-compose
+docker-compose -f docker/docker-compose.yml up
 ```
 
-### RunPod Deployment
+### RunPod GPU Deployment
 
-1. Build and push the Docker image to a registry
-2. Create a new RunPod GPU pod (recommended: RTX 4090 or A100)
-3. Configure environment variables:
-   - `MODEL_USE_MOCK=false`
-   - `MODEL_DEVICE=cuda`
-   - `API_KEYS=your-production-key`
-4. Mount the models volume at `/app/models`
-5. Expose port 8000
+For detailed RunPod deployment instructions, see [docs/RUNPOD.md](docs/RUNPOD.md).
 
-See [`docker/Dockerfile`](docker/Dockerfile) for production build details.
+Quick overview:
+1. Upload model weights to RunPod network storage
+2. Deploy with GPU pod template
+3. Set `USE_MOCK=false` and `MODEL_DEVICE=cuda`
+4. Run the server
+
+## API Overview
+
+All endpoints except health checks require `X-API-Key` header.
+
+### Health Endpoints
+| Endpoint | Description |
+|----------|-------------|
+| `GET /health` | Service health status |
+| `GET /health/ready` | Readiness probe (model loaded) |
+| `GET /health/live` | Liveness probe |
+
+### TTS Endpoints
+| Endpoint | Description |
+|----------|-------------|
+| `POST /v1/tts/synthesize` | Synthesize speech (returns audio file) |
+| `POST /v1/tts/synthesize/json` | Synthesize speech (returns base64 JSON) |
+| `POST /v1/tts/synthesize/stream` | Streaming synthesis |
+
+### Voice Endpoints
+| Endpoint | Description |
+|----------|-------------|
+| `GET /v1/voices` | List available voices |
+| `GET /v1/voices/{voice_id}` | Get voice details |
+| `POST /v1/voices/clone` | Clone a voice from audio |
+| `DELETE /v1/voices/{voice_id}` | Delete a cloned voice |
+
+For full API documentation, see [docs/API.md](docs/API.md).
+
+## Configuration
+
+All configuration is done via environment variables. Copy `.env.example` to `.env` and customize:
+
+```bash
+cp .env.example .env
+```
+
+### Key Settings
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `USE_MOCK` | Mock mode (no GPU required) | `true` |
+| `MODEL_PATH` | Path to CosyVoice model | `./models/cosyvoice` |
+| `MODEL_DEVICE` | Inference device (cuda/cpu/auto) | `auto` |
+| `API_KEYS` | Comma-separated API keys | `dev-key-123` |
+| `VOICES_DIRECTORY` | Voice profiles directory | `./voices` |
+
+See [.env.example](.env.example) for all available options.
 
 ## Project Structure
 
 ```
 tts-backend/
 ├── src/
-│   ├── api/           # FastAPI routers, models, middleware
+│   ├── api/           # FastAPI routers and models
 │   ├── audio/         # Audio processing and conversion
 │   ├── config/        # Settings and configuration
-│   ├── core/          # TTS service interfaces
-│   └── models/        # CosyVoice engine implementation
+│   ├── core/          # TTS service and interfaces
+│   ├── models/        # CosyVoice engine implementation
+│   └── utils/         # Logging and utilities
 ├── tests/
 │   ├── unit/          # Unit tests
-│   └── integration/   # Integration tests
-├── docker/            # Docker configuration
-├── scripts/           # Utility scripts
+│   └── integration/   # API integration tests
+├── docker/            # Dockerfile and compose files
+├── scripts/           # Setup and utility scripts
+├── docs/              # Documentation
 ├── voices/            # Voice profile storage
-└── .github/           # CI/CD workflows
+└── models/            # Model weights (gitignored)
 ```
 
 ## License
@@ -215,7 +187,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests and linting (`make check && make test`)
+4. Run tests and linting (`make test && make lint`)
 5. Commit your changes (`git commit -m 'Add amazing feature'`)
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request

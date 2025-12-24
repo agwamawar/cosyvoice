@@ -2,9 +2,8 @@
 
 from datetime import datetime
 
-import pytest
-
-from src.core.models import AudioResult, Voice
+from src.core.interfaces import AudioResult
+from src.core.models import Voice
 from tests.factories import create_audio_result, create_voice
 
 

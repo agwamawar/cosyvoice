@@ -2,9 +2,9 @@
 
 from enum import Enum
 from functools import lru_cache
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -74,7 +74,7 @@ class ModelSettings(BaseSettings):
                 return "cpu"
         return self.device
 
-    def get_torch_dtype(self) -> "torch.dtype":
+    def get_torch_dtype(self) -> "Any":
         """Get the torch dtype object."""
         import torch
 
@@ -108,24 +108,23 @@ class AudioSettings(BaseSettings):
 class APISettings(BaseSettings):
     """API security and rate limiting settings."""
 
-    model_config = SettingsConfigDict(env_prefix="API_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    keys: list[str] = Field(default_factory=list, alias="API_KEYS")
-    rate_limit_requests: int = Field(default=100, ge=1)
-    rate_limit_window: int = Field(default=60, ge=1, description="Window in seconds")
+    keys: str = Field(default="", alias="API_KEYS")
+    rate_limit_requests: int = Field(default=100, ge=1, alias="RATE_LIMIT_REQUESTS")
+    rate_limit_window: int = Field(default=60, ge=1, alias="RATE_LIMIT_WINDOW")
 
-    @field_validator("keys", mode="before")
-    @classmethod
-    def parse_api_keys(cls, v: str | list[str]) -> list[str]:
-        """Parse comma-separated API keys."""
-        if isinstance(v, str):
-            return [k.strip() for k in v.split(",") if k.strip()]
-        return v
+    @property
+    def api_keys(self) -> list[str]:
+        """Get parsed API keys as list."""
+        if not self.keys:
+            return []
+        return [k.strip() for k in self.keys.split(",") if k.strip()]
 
     @property
     def auth_enabled(self) -> bool:
         """Check if API authentication is enabled."""
-        return len(self.keys) > 0
+        return len(self.api_keys) > 0
 
 
 class Settings(BaseSettings):

@@ -7,7 +7,7 @@ Provides:
 """
 
 import io
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import torch
 import torchaudio

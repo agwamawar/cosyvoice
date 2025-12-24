@@ -16,11 +16,11 @@ from src.models.cosyvoice.inference import (
     get_inference,
 )
 from src.models.cosyvoice.preprocessor import (
-    TextPreprocessor,
     ChineseTextPreprocessor,
+    TextPreprocessor,
     get_preprocessor,
 )
-from src.models.cosyvoice.voice_manager import VoiceManager, DEFAULT_VOICES
+from src.models.cosyvoice.voice_manager import DEFAULT_VOICES, VoiceManager
 
 __all__ = [
     # Config

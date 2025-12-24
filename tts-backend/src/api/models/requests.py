@@ -4,8 +4,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.audio.formats import AudioFormat
-
 
 class SynthesizeRequest(BaseModel):
     """Request model for speech synthesis."""

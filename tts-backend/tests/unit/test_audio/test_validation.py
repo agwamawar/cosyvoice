@@ -1,10 +1,8 @@
 """Tests for audio validation."""
 
-import pytest
-
-from src.audio.formats import AudioFormat, detect_format
+from src.audio.formats import AudioFormat, detect_format_from_bytes
 from src.audio.validation import AudioValidator, AudioRequirements
-from tests.factories import create_audio_sample, create_invalid_audio
+from tests.factories import create_audio_sample
 
 
 class TestAudioValidation:
@@ -37,7 +35,7 @@ class TestAudioValidation:
 
     def test_format_detection(self, sample_wav_bytes: bytes):
         """Test audio format detection from bytes."""
-        detected = detect_format(sample_wav_bytes)
+        detected = detect_format_from_bytes(sample_wav_bytes)
         assert detected == AudioFormat.WAV
 
 
@@ -69,10 +67,10 @@ class TestFormatDetection:
     def test_detect_wav_format(self):
         """Test WAV format detection."""
         wav_data = create_audio_sample(duration=1.0, format="wav")
-        assert detect_format(wav_data) == AudioFormat.WAV
+        assert detect_format_from_bytes(wav_data) == AudioFormat.WAV
 
     def test_detect_unknown_format(self):
         """Test unknown format returns None or raises."""
         unknown_data = b"not audio data"
-        result = detect_format(unknown_data)
+        result = detect_format_from_bytes(unknown_data)
         assert result is None or result == AudioFormat.WAV  # Fallback behavior

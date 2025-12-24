@@ -16,6 +16,7 @@ from src.api.exceptions import VoiceNotFoundError
 from src.api.models.requests import SynthesizeRequest
 from src.api.models.responses import SynthesizeResponse
 from src.audio.formats import AudioFormat
+from src.core.models import SynthesisRequest as CoreSynthesisRequest
 
 router = APIRouter(prefix="/v1/tts", tags=["Synthesis"])
 
@@ -40,37 +41,34 @@ async def synthesize(
     Returns audio with appropriate Content-Type header.
     Use Content-Disposition for filename suggestion.
     """
-    # Verify voice exists
-    voice = await tts_service.get_voice(request.voice_id)
-    if voice is None:
-        raise VoiceNotFoundError(request.voice_id)
-
-    # Build synthesis options
-    from src.core.interfaces import SynthesisOptions
-
-    options = SynthesisOptions(
+    # Build core synthesis request
+    core_request = CoreSynthesisRequest(
+        text=request.text,
         voice_id=request.voice_id,
         speed=request.speed,
         language=request.language,
-        output_format=AudioFormat(request.output_format),
+        output_format=request.output_format,
         sample_rate=request.sample_rate,
     )
 
     # Perform synthesis
-    audio_result = await tts_service.synthesize(request.text, options)
+    synthesis_response = await tts_service.synthesize(core_request)
+
+    # Decode base64 audio to bytes
+    audio_data = base64.b64decode(synthesis_response.audio_base64)
 
     # Get content type
     content_type = CONTENT_TYPE_MAP.get(request.output_format, "audio/wav")
 
     return StreamingResponse(
-        iter([audio_result.audio_data]),
+        iter([audio_data]),
         media_type=content_type,
         headers={
             "Content-Disposition": f"attachment; filename=speech.{request.output_format}",
-            "Content-Length": str(len(audio_result.audio_data)),
-            "X-Duration-Seconds": str(audio_result.duration_seconds),
+            "Content-Length": str(len(audio_data)),
+            "X-Duration-Seconds": str(synthesis_response.duration_seconds),
             "X-Voice-ID": request.voice_id,
-            "X-Sample-Rate": str(audio_result.sample_rate),
+            "X-Sample-Rate": str(synthesis_response.sample_rate),
         },
     )
 
@@ -92,35 +90,26 @@ async def synthesize_json(
     start_time = time.perf_counter()
     request_id = getattr(http_request.state, "request_id", str(uuid.uuid4()))
 
-    # Verify voice exists
-    voice = await tts_service.get_voice(request.voice_id)
-    if voice is None:
-        raise VoiceNotFoundError(request.voice_id)
-
-    # Build synthesis options
-    from src.core.interfaces import SynthesisOptions
-
-    options = SynthesisOptions(
+    # Build core synthesis request
+    core_request = CoreSynthesisRequest(
+        text=request.text,
         voice_id=request.voice_id,
         speed=request.speed,
         language=request.language,
-        output_format=AudioFormat(request.output_format),
+        output_format=request.output_format,
         sample_rate=request.sample_rate,
     )
 
     # Perform synthesis
-    audio_result = await tts_service.synthesize(request.text, options)
+    synthesis_response = await tts_service.synthesize(core_request)
 
     processing_time_ms = (time.perf_counter() - start_time) * 1000
 
-    # Encode audio as base64
-    audio_base64 = base64.b64encode(audio_result.audio_data).decode("utf-8")
-
     return SynthesizeResponse(
-        audio_base64=audio_base64,
+        audio_base64=synthesis_response.audio_base64,
         format=request.output_format,
-        sample_rate=audio_result.sample_rate,
-        duration_seconds=audio_result.duration_seconds,
+        sample_rate=synthesis_response.sample_rate,
+        duration_seconds=synthesis_response.duration_seconds,
         request_id=request_id,
         voice_id=request.voice_id,
         text_length=len(request.text),

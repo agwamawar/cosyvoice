@@ -9,6 +9,7 @@ from fastapi import APIRouter, File, Form, UploadFile
 from src.api.dependencies import APIKeyDep, TTSServiceDep
 from src.api.exceptions import ValidationError, VoiceNotFoundError
 from src.api.models.responses import VoiceListResponse, VoiceResponse
+from src.core.models import CloneVoiceRequest as CoreCloneVoiceRequest
 
 router = APIRouter(prefix="/v1/voices", tags=["Voices"])
 
@@ -101,11 +102,16 @@ async def clone_voice(
             details={"size_bytes": len(audio_content)},
         )
 
+    # Build clone voice request
+    clone_request = CoreCloneVoiceRequest(
+        voice_name=voice_name,
+        description=description,
+    )
+
     # Clone voice
     voice = await tts_service.clone_voice(
-        voice_name=voice_name,
-        audio_data=audio_content,
-        description=description,
+        request=clone_request,
+        audio_samples=[audio_content],
     )
 
     return VoiceResponse(

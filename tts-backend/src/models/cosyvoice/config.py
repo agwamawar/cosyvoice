@@ -11,7 +11,10 @@ class CosyVoiceConfig(BaseSettings):
     """Configuration for CosyVoice TTS model."""
 
     # Model paths
-    model_path: str = Field(default="./models/cosyvoice", description="Path to model directory")
+    model_path: str = Field(
+        default="/workspace/models/Fun-CosyVoice3-0.5B",
+        description="Path to model directory",
+    )
     llm_model: str = Field(default="llm.pt", description="LLM model filename")
     flow_model: str = Field(default="flow.pt", description="Flow model filename")
     hift_model: str = Field(default="hift.pt", description="HiFT vocoder filename")

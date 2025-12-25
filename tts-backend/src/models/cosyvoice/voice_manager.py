@@ -332,6 +332,30 @@ class VoiceManager:
 
         return audio_path
 
+    async def get_reference_audio_path(self, voice_id: str) -> Path | None:
+        """
+        Get the path to reference audio for a voice.
+
+        Args:
+            voice_id: Voice identifier
+
+        Returns:
+            Path to reference audio file, or None if not found
+        """
+        voice_dir = self.voices_dir / voice_id
+        reference_path = voice_dir / "reference.wav"
+
+        if reference_path.exists():
+            return reference_path
+
+        # Check for other audio formats
+        for ext in [".wav", ".mp3", ".flac", ".ogg"]:
+            audio_path = voice_dir / f"reference{ext}"
+            if audio_path.exists():
+                return audio_path
+
+        return None
+
     @property
     def is_loaded(self) -> bool:
         """Check if voices have been loaded."""

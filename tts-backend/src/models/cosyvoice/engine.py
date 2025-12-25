@@ -7,7 +7,9 @@ Provides:
 """
 
 import io
+import tempfile
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 import torch
 import torchaudio
@@ -124,14 +126,28 @@ class CosyVoiceEngine(TTSEngine):
         language = options.language or "en"
         processed_text = self._preprocessor.preprocess(text, language)
 
+        # Add language tag for cross-lingual inference if not present
+        if not processed_text.startswith("<|"):
+            lang_tag = f"<|{language}|>"
+            processed_text = f"{lang_tag}{processed_text}"
+
         # Split long text if needed
         chunks = self._preprocessor.split_long_text(
             processed_text,
             self._config.max_text_length,
         )
 
-        # Get speaker embedding
+        # Get speaker embedding (for compatibility) and prompt audio path
         embedding = await self._voice_manager.get_embedding(options.voice_id)
+        prompt_audio_path = await self._voice_manager.get_reference_audio_path(options.voice_id)
+
+        # Convert Path to string if exists
+        prompt_audio_str = str(prompt_audio_path) if prompt_audio_path else None
+
+        logger.debug(
+            f"Synthesizing: voice={options.voice_id}, "
+            f"prompt_audio={prompt_audio_str}, chunks={len(chunks)}"
+        )
 
         # Generate audio for each chunk
         audio_chunks = []
@@ -140,6 +156,7 @@ class CosyVoiceEngine(TTSEngine):
                 chunk,
                 embedding,
                 speed=options.speed,
+                prompt_audio_path=prompt_audio_str,
             )
             audio_chunks.append(audio_tensor)
 
@@ -240,28 +257,32 @@ class CosyVoiceEngine(TTSEngine):
 
         sample = samples[0]
 
-        # Load audio tensor
-        buffer = io.BytesIO(sample.audio_data)
-        audio_tensor, sr = torchaudio.load(buffer)
-
-        # Resample if needed
-        if sr != self._config.clone_sample_rate:
-            resampler = torchaudio.transforms.Resample(sr, self._config.clone_sample_rate)
-            audio_tensor = resampler(audio_tensor)
-
-        # Extract embedding
-        embedding = await self._inference.extract_speaker_embedding(audio_tensor)
-
-        # Save voice
+        # Save voice first to get voice_id and directory
         metadata = {
             "description": description,
             "language": "en",
             "sample_duration": sample.duration_seconds,
         }
-        voice_id = await self._voice_manager.save_voice(voice_name, embedding, metadata)
+        # Save with None embedding initially - we'll use reference audio directly
+        voice_id = await self._voice_manager.save_voice(voice_name, None, metadata)
 
-        # Save reference audio
-        await self._voice_manager.save_reference_audio(voice_id, sample.audio_data)
+        # Save reference audio to the voice directory
+        reference_path = await self._voice_manager.save_reference_audio(
+            voice_id, sample.audio_data
+        )
+
+        logger.info(f"Saved reference audio for voice {voice_id} at {reference_path}")
+
+        # Register speaker with CosyVoice using the saved audio path
+        try:
+            speaker_id = await self._inference.extract_speaker_embedding(
+                str(reference_path),
+                speaker_name=voice_id,
+            )
+            logger.info(f"Registered speaker: {speaker_id}")
+        except Exception as e:
+            logger.warning(f"Speaker registration failed (non-fatal): {e}")
+            # Voice cloning will still work using cross-lingual with reference audio
 
         # Get voice info
         voice = await self._voice_manager.get_voice(voice_id)

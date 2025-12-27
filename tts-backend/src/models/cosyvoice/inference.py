@@ -24,18 +24,10 @@ logger = get_logger("inference")
 # Thread pool for CPU/GPU-bound inference operations
 _inference_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cosyvoice_inference")
 
-# Language-specific instructions for CosyVoice3 inference_instruct2
-# Format: "You are a helpful assistant. [language instruction]<|endofprompt|>"
-LANGUAGE_INSTRUCTIONS = {
-    "en": "You are a helpful assistant. Please speak in English.<|endofprompt|>",
-    "zh": "You are a helpful assistant.<|endofprompt|>",
-    "ja": "You are a helpful assistant. 日本語で話してください。<|endofprompt|>",
-    "ko": "You are a helpful assistant. 한국어로 말해주세요.<|endofprompt|>",
-    "es": "You are a helpful assistant. Por favor, habla en español.<|endofprompt|>",
-    "fr": "You are a helpful assistant. Parlez en français, s'il vous plaît.<|endofprompt|>",
-    "de": "You are a helpful assistant. Bitte sprechen Sie auf Deutsch.<|endofprompt|>",
-    "default": "You are a helpful assistant. Please speak in English.<|endofprompt|>",
-}
+# Default prompt text for zero-shot synthesis
+# This is the transcript of the bundled prompt audio files
+# The output language is determined by the INPUT TEXT, not by the prompt
+DEFAULT_PROMPT_TEXT = "You are a helpful assistant.<|endofprompt|>希望你以后能够做的比我还好呦。"
 
 
 class CosyVoiceInference:
@@ -159,14 +151,17 @@ class CosyVoiceInference:
         language: str = "en",
     ) -> tuple[torch.Tensor, int]:
         """
-        Generate audio from text using inference_instruct2 for language control.
+        Generate audio from text using inference_zero_shot.
+
+        The output language is determined by the INPUT TEXT language, not by instructions.
+        CosyVoice3 will speak whatever language the text is written in.
 
         Args:
-            text: Text to synthesize (plain text, no language tags needed)
+            text: Text to synthesize (the language of this text determines output language)
             speaker_embedding: Speaker embedding (unused, kept for compatibility)
             speed: Speech speed multiplier (0.5-2.0)
             prompt_audio_path: Path to prompt audio file for voice cloning
-            language: Target language code (en, zh, ja, ko, es, fr, de)
+            language: Language hint (unused - output language is determined by text)
 
         Returns:
             Tuple of (audio_tensor, sample_rate)
@@ -183,7 +178,6 @@ class CosyVoiceInference:
             speaker_embedding,
             speed,
             prompt_audio_path,
-            language,
         )
 
         return audio_tensor, self._sample_rate
@@ -194,23 +188,22 @@ class CosyVoiceInference:
         speaker_embedding: Any,
         speed: float,
         prompt_audio_path: str | None,
-        language: str = "en",
     ) -> torch.Tensor:
-        """Synchronous generation using inference_instruct2 for language control."""
+        """Synchronous generation using inference_zero_shot."""
         audio_chunks = []
 
-        # Get language instruction
-        instruction = LANGUAGE_INSTRUCTIONS.get(language, LANGUAGE_INSTRUCTIONS["default"])
-
-        # If prompt_audio_path is provided and exists, use inference_instruct2
+        # If prompt_audio_path is provided and exists, use inference_zero_shot
         if prompt_audio_path and Path(prompt_audio_path).exists():
-            logger.info(f"Using instruct2 inference: lang={language}, prompt={prompt_audio_path}")
-            logger.debug(f"Instruction: {instruction}")
-            logger.debug(f"Text: {text}")
+            logger.info(f"Using zero_shot inference: prompt={prompt_audio_path}")
+            logger.info(f"Text to synthesize: {text[:100]}...")
 
-            for chunk in self._model.inference_instruct2(
+            # inference_zero_shot: (text_to_speak, prompt_text, prompt_audio_path)
+            # - text_to_speak: the text to synthesize (output language = text language)
+            # - prompt_text: transcript of the prompt audio
+            # - prompt_audio_path: path to the prompt audio file
+            for chunk in self._model.inference_zero_shot(
                 text,
-                instruction,
+                DEFAULT_PROMPT_TEXT,
                 prompt_audio_path,
                 speed=speed,
                 stream=False,

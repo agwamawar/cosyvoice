@@ -20,6 +20,16 @@ from src.utils.logging import get_logger
 
 logger = get_logger("inference")
 
+# Bundled reference audio files from CosyVoice official repo
+COSYVOICE_ASSET_PATH = Path("/workspace/cosyvoice-official/asset")
+DEFAULT_REFERENCE_AUDIO = {
+    "default": COSYVOICE_ASSET_PATH / "cross_lingual_prompt.wav",
+    "en-female-1": COSYVOICE_ASSET_PATH / "cross_lingual_prompt.wav",
+    "en-male-1": COSYVOICE_ASSET_PATH / "zero_shot_prompt.wav",
+    "zh-female-1": COSYVOICE_ASSET_PATH / "cross_lingual_prompt.wav",
+    "zh-male-1": COSYVOICE_ASSET_PATH / "zero_shot_prompt.wav",
+}
+
 
 # Default built-in voices
 DEFAULT_VOICES = [
@@ -342,17 +352,25 @@ class VoiceManager:
         Returns:
             Path to reference audio file, or None if not found
         """
+        # First check custom voice directory
         voice_dir = self.voices_dir / voice_id
         reference_path = voice_dir / "reference.wav"
 
         if reference_path.exists():
             return reference_path
 
-        # Check for other audio formats
+        # Check for other audio formats in custom directory
         for ext in [".wav", ".mp3", ".flac", ".ogg"]:
             audio_path = voice_dir / f"reference{ext}"
             if audio_path.exists():
                 return audio_path
+
+        # Check bundled reference audio for default voices
+        if voice_id in DEFAULT_REFERENCE_AUDIO:
+            bundled_path = DEFAULT_REFERENCE_AUDIO[voice_id]
+            if bundled_path.exists():
+                logger.debug(f"Using bundled reference audio for {voice_id}: {bundled_path}")
+                return bundled_path
 
         return None
 

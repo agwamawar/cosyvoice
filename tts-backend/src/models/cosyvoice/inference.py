@@ -24,16 +24,10 @@ logger = get_logger("inference")
 # Thread pool for CPU/GPU-bound inference operations
 _inference_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cosyvoice_inference")
 
-# Language tags for cross-lingual inference
-# Supported: <|zh|> <|en|> <|jp|> <|yue|> <|ko|>
-LANGUAGE_TAGS = {
-    "zh": "<|zh|>",
-    "en": "<|en|>",
-    "ja": "<|jp|>",
-    "jp": "<|jp|>",
-    "yue": "<|yue|>",
-    "ko": "<|ko|>",
-}
+# NOTE: CosyVoice3 does NOT use language tags like <|en|> or <|zh|>
+# Those are for OLD CosyVoice (CosyVoice-300M) only!
+# CosyVoice3 auto-detects language from the input text itself.
+# Just pass plain text - English text will produce English output.
 
 
 class CosyVoiceInference:
@@ -197,23 +191,31 @@ class CosyVoiceInference:
         prompt_audio_path: str | None,
         language: str = "en",
     ) -> torch.Tensor:
-        """Synchronous generation using inference_cross_lingual with language tags."""
+        """
+        Synchronous generation using inference_zero_shot.
+        
+        CosyVoice3 auto-detects language from input text - NO language tags needed!
+        Just pass plain English text for English output.
+        """
         audio_chunks = []
 
-        # Add language tag prefix for cross-lingual inference
-        # Supported: <|zh|> <|en|> <|jp|> <|yue|> <|ko|>
-        lang_tag = LANGUAGE_TAGS.get(language, "<|en|>")
-        tagged_text = f"{lang_tag}{text}"
-
-        # If prompt_audio_path is provided and exists, use inference_cross_lingual
+        # If prompt_audio_path is provided and exists, use inference_zero_shot
         if prompt_audio_path and Path(prompt_audio_path).exists():
-            logger.info(f"Using cross_lingual inference: lang={language}, prompt={prompt_audio_path}")
-            logger.info(f"Tagged text: {tagged_text[:100]}...")
+            logger.info(f"Using zero_shot inference: prompt={prompt_audio_path}")
+            logger.info(f"Text (first 100 chars): {text[:100]}...")
 
-            # inference_cross_lingual: (text_with_lang_tag, prompt_audio_path)
-            # The language tag <|en|> forces English output
-            for chunk in self._model.inference_cross_lingual(
-                tagged_text,
+            # CosyVoice3 inference_zero_shot: (tts_text, prompt_text, prompt_wav)
+            # - tts_text: text to synthesize (language auto-detected from text)
+            # - prompt_text: format "You are a helpful assistant.<|endofprompt|>[transcript of prompt audio]"
+            # - prompt_wav: path to prompt audio file
+            #
+            # The prompt_text should contain the transcript of what's spoken in prompt_wav
+            # For simplicity, we use a generic prompt since we don't have the transcript
+            prompt_text = "You are a helpful assistant.<|endofprompt|>"
+            
+            for chunk in self._model.inference_zero_shot(
+                text,
+                prompt_text,
                 prompt_audio_path,
                 speed=speed,
                 stream=False,

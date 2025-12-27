@@ -194,33 +194,38 @@ class CosyVoiceInference:
                 if "tts_speech" in chunk:
                     audio_chunks.append(chunk["tts_speech"])
         else:
-            # No prompt audio - try SFT inference for built-in speakers
-            # CosyVoice3 may have inference_sft for pre-trained speakers
-            if hasattr(self._model, "inference_sft"):
-                logger.debug("Using SFT inference (no prompt audio)")
-                # Use default speaker or first available
-                spk_id = "中文女" if hasattr(self._model, "list_available_spks") else None
+            # No prompt audio available for this voice
+            # Fun-CosyVoice3 only supports zero-shot/cross-lingual which require reference audio
+            # Check if model has SFT inference with pre-trained speakers
+            has_sft = hasattr(self._model, "inference_sft")
+            available_spks = []
+            
+            if has_sft:
                 try:
-                    available_spks = self._model.list_available_spks() if hasattr(self._model, "list_available_spks") else []
-                    if available_spks:
-                        spk_id = available_spks[0]
-                        logger.debug(f"Using speaker: {spk_id}")
+                    if hasattr(self._model, "list_available_spks"):
+                        available_spks = self._model.list_available_spks()
                 except Exception:
                     pass
 
+            if has_sft and available_spks:
+                # Use first available pre-trained speaker
+                spk_id = available_spks[0]
+                logger.debug(f"Using SFT inference with speaker: {spk_id}")
                 for chunk in self._model.inference_sft(
                     text,
-                    spk_id or "中文女",
+                    spk_id,
                     speed=speed,
                     stream=False,
                 ):
                     if "tts_speech" in chunk:
                         audio_chunks.append(chunk["tts_speech"])
             else:
-                # No SFT available - raise helpful error
+                # No SFT/pre-trained speakers - this model requires reference audio
                 raise RuntimeError(
-                    "No reference audio available for this voice. "
-                    "Please clone a voice first or use a cloned voice with reference audio."
+                    "This voice requires reference audio for synthesis. "
+                    "Fun-CosyVoice3 only supports voice cloning mode. "
+                    "Please clone a voice first using POST /v1/voices/clone with an audio sample, "
+                    "then use the cloned voice_id for synthesis."
                 )
 
         # Concatenate all chunks

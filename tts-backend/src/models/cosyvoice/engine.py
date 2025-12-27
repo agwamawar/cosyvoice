@@ -126,12 +126,7 @@ class CosyVoiceEngine(TTSEngine):
         language = options.language or "en"
         processed_text = self._preprocessor.preprocess(text, language)
 
-        # Add language tag for cross-lingual inference if not present
-        if not processed_text.startswith("<|"):
-            lang_tag = f"<|{language}|>"
-            processed_text = f"{lang_tag}{processed_text}"
-
-        # Split long text if needed
+        # Split long text if needed (no language tags - using instruct2 for language control)
         chunks = self._preprocessor.split_long_text(
             processed_text,
             self._config.max_text_length,
@@ -144,8 +139,8 @@ class CosyVoiceEngine(TTSEngine):
         # Convert Path to string if exists
         prompt_audio_str = str(prompt_audio_path) if prompt_audio_path else None
 
-        logger.debug(
-            f"Synthesizing: voice={options.voice_id}, "
+        logger.info(
+            f"Synthesizing: voice={options.voice_id}, language={language}, "
             f"prompt_audio={prompt_audio_str}, chunks={len(chunks)}"
         )
 
@@ -157,6 +152,7 @@ class CosyVoiceEngine(TTSEngine):
                 embedding,
                 speed=options.speed,
                 prompt_audio_path=prompt_audio_str,
+                language=language,
             )
             audio_chunks.append(audio_tensor)
 

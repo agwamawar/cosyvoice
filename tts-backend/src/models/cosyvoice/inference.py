@@ -24,6 +24,19 @@ logger = get_logger("inference")
 # Thread pool for CPU/GPU-bound inference operations
 _inference_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cosyvoice_inference")
 
+# Language-specific instructions for CosyVoice3 inference_instruct2
+# Format: "You are a helpful assistant. [language instruction]<|endofprompt|>"
+LANGUAGE_INSTRUCTIONS = {
+    "en": "You are a helpful assistant. Please speak in English.<|endofprompt|>",
+    "zh": "You are a helpful assistant.<|endofprompt|>",
+    "ja": "You are a helpful assistant. 日本語で話してください。<|endofprompt|>",
+    "ko": "You are a helpful assistant. 한국어로 말해주세요.<|endofprompt|>",
+    "es": "You are a helpful assistant. Por favor, habla en español.<|endofprompt|>",
+    "fr": "You are a helpful assistant. Parlez en français, s'il vous plaît.<|endofprompt|>",
+    "de": "You are a helpful assistant. Bitte sprechen Sie auf Deutsch.<|endofprompt|>",
+    "default": "You are a helpful assistant. Please speak in English.<|endofprompt|>",
+}
+
 
 class CosyVoiceInference:
     """
@@ -143,15 +156,17 @@ class CosyVoiceInference:
         speaker_embedding: Any,
         speed: float = 1.0,
         prompt_audio_path: str | None = None,
+        language: str = "en",
     ) -> tuple[torch.Tensor, int]:
         """
-        Generate audio from text using cross-lingual inference.
+        Generate audio from text using inference_instruct2 for language control.
 
         Args:
-            text: Text to synthesize (can include language tag like <|en|>)
-            speaker_embedding: Speaker embedding or prompt audio path
+            text: Text to synthesize (plain text, no language tags needed)
+            speaker_embedding: Speaker embedding (unused, kept for compatibility)
             speed: Speech speed multiplier (0.5-2.0)
             prompt_audio_path: Path to prompt audio file for voice cloning
+            language: Target language code (en, zh, ja, ko, es, fr, de)
 
         Returns:
             Tuple of (audio_tensor, sample_rate)
@@ -168,6 +183,7 @@ class CosyVoiceInference:
             speaker_embedding,
             speed,
             prompt_audio_path,
+            language,
         )
 
         return audio_tensor, self._sample_rate
@@ -178,15 +194,23 @@ class CosyVoiceInference:
         speaker_embedding: Any,
         speed: float,
         prompt_audio_path: str | None,
+        language: str = "en",
     ) -> torch.Tensor:
-        """Synchronous generation (runs in thread pool)."""
+        """Synchronous generation using inference_instruct2 for language control."""
         audio_chunks = []
 
-        # If prompt_audio_path is provided and exists, use cross-lingual inference
+        # Get language instruction
+        instruction = LANGUAGE_INSTRUCTIONS.get(language, LANGUAGE_INSTRUCTIONS["default"])
+
+        # If prompt_audio_path is provided and exists, use inference_instruct2
         if prompt_audio_path and Path(prompt_audio_path).exists():
-            logger.debug(f"Using cross-lingual inference with prompt: {prompt_audio_path}")
-            for chunk in self._model.inference_cross_lingual(
+            logger.info(f"Using instruct2 inference: lang={language}, prompt={prompt_audio_path}")
+            logger.debug(f"Instruction: {instruction}")
+            logger.debug(f"Text: {text}")
+
+            for chunk in self._model.inference_instruct2(
                 text,
+                instruction,
                 prompt_audio_path,
                 speed=speed,
                 stream=False,
@@ -194,39 +218,13 @@ class CosyVoiceInference:
                 if "tts_speech" in chunk:
                     audio_chunks.append(chunk["tts_speech"])
         else:
-            # No prompt audio available for this voice
-            # Fun-CosyVoice3 only supports zero-shot/cross-lingual which require reference audio
-            # Check if model has SFT inference with pre-trained speakers
-            has_sft = hasattr(self._model, "inference_sft")
-            available_spks = []
-            
-            if has_sft:
-                try:
-                    if hasattr(self._model, "list_available_spks"):
-                        available_spks = self._model.list_available_spks()
-                except Exception:
-                    pass
-
-            if has_sft and available_spks:
-                # Use first available pre-trained speaker
-                spk_id = available_spks[0]
-                logger.debug(f"Using SFT inference with speaker: {spk_id}")
-                for chunk in self._model.inference_sft(
-                    text,
-                    spk_id,
-                    speed=speed,
-                    stream=False,
-                ):
-                    if "tts_speech" in chunk:
-                        audio_chunks.append(chunk["tts_speech"])
-            else:
-                # No SFT/pre-trained speakers - this model requires reference audio
-                raise RuntimeError(
-                    "This voice requires reference audio for synthesis. "
-                    "Fun-CosyVoice3 only supports voice cloning mode. "
-                    "Please clone a voice first using POST /v1/voices/clone with an audio sample, "
-                    "then use the cloned voice_id for synthesis."
-                )
+            # No prompt audio available - this model requires reference audio
+            raise RuntimeError(
+                "This voice requires reference audio for synthesis. "
+                "Fun-CosyVoice3 only supports voice cloning mode. "
+                "Please clone a voice first using POST /v1/voices/clone with an audio sample, "
+                "then use the cloned voice_id for synthesis."
+            )
 
         # Concatenate all chunks
         if audio_chunks:
@@ -507,6 +505,7 @@ class MockCosyVoiceInference:
         speaker_embedding: Any,
         speed: float = 1.0,
         prompt_audio_path: str | None = None,
+        language: str = "en",
     ) -> tuple[torch.Tensor, int]:
         """
         Generate mock audio (sine wave).
@@ -516,6 +515,7 @@ class MockCosyVoiceInference:
             speaker_embedding: Ignored for mock
             speed: Speech speed multiplier
             prompt_audio_path: Ignored for mock
+            language: Target language (ignored for mock)
 
         Returns:
             Tuple of (audio_tensor, sample_rate)

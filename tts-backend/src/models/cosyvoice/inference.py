@@ -213,12 +213,15 @@ class CosyVoiceInference:
             # For simplicity, we use a generic prompt since we don't have the transcript
             prompt_text = "You are a helpful assistant.<|endofprompt|>"
             
+            # CRITICAL: Set text_frontend=False to prevent Chinese text normalization
+            # on English text, which causes English input to produce Chinese output
             for chunk in self._model.inference_zero_shot(
                 text,
                 prompt_text,
                 prompt_audio_path,
                 speed=speed,
                 stream=False,
+                text_frontend=False,
             ):
                 if "tts_speech" in chunk:
                     audio_chunks.append(chunk["tts_speech"])

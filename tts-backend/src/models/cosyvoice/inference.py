@@ -24,12 +24,16 @@ logger = get_logger("inference")
 # Thread pool for CPU/GPU-bound inference operations
 _inference_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cosyvoice_inference")
 
-# Default prompt text for zero-shot synthesis
-# This should match the transcript of the prompt audio being used
-# English prompt: "Hello, I am an English voice assistant. I hope this recording helps with voice cloning."
-DEFAULT_PROMPT_TEXT_EN = "You are a helpful assistant.<|endofprompt|>Hello, I am an English voice assistant. I hope this recording helps with voice cloning."
-# Chinese prompt (for zh voices)
-DEFAULT_PROMPT_TEXT_ZH = "You are a helpful assistant.<|endofprompt|>希望你以后能够做的比我还好呦。"
+# Language tags for cross-lingual inference
+# Supported: <|zh|> <|en|> <|jp|> <|yue|> <|ko|>
+LANGUAGE_TAGS = {
+    "zh": "<|zh|>",
+    "en": "<|en|>",
+    "ja": "<|jp|>",
+    "jp": "<|jp|>",
+    "yue": "<|yue|>",
+    "ko": "<|ko|>",
+}
 
 
 class CosyVoiceInference:
@@ -193,29 +197,23 @@ class CosyVoiceInference:
         prompt_audio_path: str | None,
         language: str = "en",
     ) -> torch.Tensor:
-        """Synchronous generation using inference_zero_shot."""
+        """Synchronous generation using inference_cross_lingual with language tags."""
         audio_chunks = []
 
-        # Select prompt text based on language
-        # Chinese voices use Chinese prompt text, others use English
-        if language.startswith("zh"):
-            prompt_text = DEFAULT_PROMPT_TEXT_ZH
-        else:
-            prompt_text = DEFAULT_PROMPT_TEXT_EN
+        # Add language tag prefix for cross-lingual inference
+        # Supported: <|zh|> <|en|> <|jp|> <|yue|> <|ko|>
+        lang_tag = LANGUAGE_TAGS.get(language, "<|en|>")
+        tagged_text = f"{lang_tag}{text}"
 
-        # If prompt_audio_path is provided and exists, use inference_zero_shot
+        # If prompt_audio_path is provided and exists, use inference_cross_lingual
         if prompt_audio_path and Path(prompt_audio_path).exists():
-            logger.info(f"Using zero_shot inference: lang={language}, prompt={prompt_audio_path}")
-            logger.info(f"Text to synthesize: {text[:100]}...")
-            logger.debug(f"Prompt text: {prompt_text}")
+            logger.info(f"Using cross_lingual inference: lang={language}, prompt={prompt_audio_path}")
+            logger.info(f"Tagged text: {tagged_text[:100]}...")
 
-            # inference_zero_shot: (text_to_speak, prompt_text, prompt_audio_path)
-            # - text_to_speak: the text to synthesize (output language = text language)
-            # - prompt_text: transcript of the prompt audio
-            # - prompt_audio_path: path to the prompt audio file
-            for chunk in self._model.inference_zero_shot(
-                text,
-                prompt_text,
+            # inference_cross_lingual: (text_with_lang_tag, prompt_audio_path)
+            # The language tag <|en|> forces English output
+            for chunk in self._model.inference_cross_lingual(
+                tagged_text,
                 prompt_audio_path,
                 speed=speed,
                 stream=False,

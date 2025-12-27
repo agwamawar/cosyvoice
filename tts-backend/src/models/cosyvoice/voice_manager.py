@@ -20,12 +20,17 @@ from src.utils.logging import get_logger
 
 logger = get_logger("inference")
 
-# Bundled reference audio files from CosyVoice official repo
+# Bundled reference audio files
 COSYVOICE_ASSET_PATH = Path("/workspace/cosyvoice-official/asset")
+BACKEND_VOICES_PATH = Path("/workspace/cosyvoice/tts-backend/voices")
+
+# English voices use English prompt, Chinese voices use Chinese prompt
 DEFAULT_REFERENCE_AUDIO = {
-    "default": COSYVOICE_ASSET_PATH / "cross_lingual_prompt.wav",
-    "en-female-1": COSYVOICE_ASSET_PATH / "cross_lingual_prompt.wav",
-    "en-male-1": COSYVOICE_ASSET_PATH / "zero_shot_prompt.wav",
+    # English voices - use English prompt audio
+    "default": BACKEND_VOICES_PATH / "english_prompt.wav",
+    "en-female-1": BACKEND_VOICES_PATH / "english_prompt.wav",
+    "en-male-1": BACKEND_VOICES_PATH / "english_prompt.wav",
+    # Chinese voices - use Chinese prompt audio from CosyVoice assets
     "zh-female-1": COSYVOICE_ASSET_PATH / "cross_lingual_prompt.wav",
     "zh-male-1": COSYVOICE_ASSET_PATH / "zero_shot_prompt.wav",
 }

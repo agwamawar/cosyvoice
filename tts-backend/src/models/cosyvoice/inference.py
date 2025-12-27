@@ -25,9 +25,11 @@ logger = get_logger("inference")
 _inference_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cosyvoice_inference")
 
 # Default prompt text for zero-shot synthesis
-# This is the transcript of the bundled prompt audio files
-# The output language is determined by the INPUT TEXT, not by the prompt
-DEFAULT_PROMPT_TEXT = "You are a helpful assistant.<|endofprompt|>希望你以后能够做的比我还好呦。"
+# This should match the transcript of the prompt audio being used
+# English prompt: "Hello, I am an English voice assistant. I hope this recording helps with voice cloning."
+DEFAULT_PROMPT_TEXT_EN = "You are a helpful assistant.<|endofprompt|>Hello, I am an English voice assistant. I hope this recording helps with voice cloning."
+# Chinese prompt (for zh voices)
+DEFAULT_PROMPT_TEXT_ZH = "You are a helpful assistant.<|endofprompt|>希望你以后能够做的比我还好呦。"
 
 
 class CosyVoiceInference:
@@ -178,6 +180,7 @@ class CosyVoiceInference:
             speaker_embedding,
             speed,
             prompt_audio_path,
+            language,
         )
 
         return audio_tensor, self._sample_rate
@@ -188,14 +191,23 @@ class CosyVoiceInference:
         speaker_embedding: Any,
         speed: float,
         prompt_audio_path: str | None,
+        language: str = "en",
     ) -> torch.Tensor:
         """Synchronous generation using inference_zero_shot."""
         audio_chunks = []
 
+        # Select prompt text based on language
+        # Chinese voices use Chinese prompt text, others use English
+        if language.startswith("zh"):
+            prompt_text = DEFAULT_PROMPT_TEXT_ZH
+        else:
+            prompt_text = DEFAULT_PROMPT_TEXT_EN
+
         # If prompt_audio_path is provided and exists, use inference_zero_shot
         if prompt_audio_path and Path(prompt_audio_path).exists():
-            logger.info(f"Using zero_shot inference: prompt={prompt_audio_path}")
+            logger.info(f"Using zero_shot inference: lang={language}, prompt={prompt_audio_path}")
             logger.info(f"Text to synthesize: {text[:100]}...")
+            logger.debug(f"Prompt text: {prompt_text}")
 
             # inference_zero_shot: (text_to_speak, prompt_text, prompt_audio_path)
             # - text_to_speak: the text to synthesize (output language = text language)
@@ -203,7 +215,7 @@ class CosyVoiceInference:
             # - prompt_audio_path: path to the prompt audio file
             for chunk in self._model.inference_zero_shot(
                 text,
-                DEFAULT_PROMPT_TEXT,
+                prompt_text,
                 prompt_audio_path,
                 speed=speed,
                 stream=False,

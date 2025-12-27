@@ -180,10 +180,9 @@ class CosyVoiceInference:
         prompt_audio_path: str | None,
     ) -> torch.Tensor:
         """Synchronous generation (runs in thread pool)."""
-        # Collect all audio chunks from the generator
         audio_chunks = []
 
-        # If prompt_audio_path is provided, use cross-lingual inference
+        # If prompt_audio_path is provided and exists, use cross-lingual inference
         if prompt_audio_path and Path(prompt_audio_path).exists():
             logger.debug(f"Using cross-lingual inference with prompt: {prompt_audio_path}")
             for chunk in self._model.inference_cross_lingual(
@@ -195,24 +194,41 @@ class CosyVoiceInference:
                 if "tts_speech" in chunk:
                     audio_chunks.append(chunk["tts_speech"])
         else:
-            # Fallback: use cross-lingual with a default prompt if available
-            # Or use instruct mode without prompt
-            logger.debug("Using inference without prompt audio")
-            for chunk in self._model.inference_cross_lingual(
-                text,
-                prompt_audio_path or "",
-                speed=speed,
-                stream=False,
-            ):
-                if "tts_speech" in chunk:
-                    audio_chunks.append(chunk["tts_speech"])
+            # No prompt audio - try SFT inference for built-in speakers
+            # CosyVoice3 may have inference_sft for pre-trained speakers
+            if hasattr(self._model, "inference_sft"):
+                logger.debug("Using SFT inference (no prompt audio)")
+                # Use default speaker or first available
+                spk_id = "中文女" if hasattr(self._model, "list_available_spks") else None
+                try:
+                    available_spks = self._model.list_available_spks() if hasattr(self._model, "list_available_spks") else []
+                    if available_spks:
+                        spk_id = available_spks[0]
+                        logger.debug(f"Using speaker: {spk_id}")
+                except Exception:
+                    pass
+
+                for chunk in self._model.inference_sft(
+                    text,
+                    spk_id or "中文女",
+                    speed=speed,
+                    stream=False,
+                ):
+                    if "tts_speech" in chunk:
+                        audio_chunks.append(chunk["tts_speech"])
+            else:
+                # No SFT available - raise helpful error
+                raise RuntimeError(
+                    "No reference audio available for this voice. "
+                    "Please clone a voice first or use a cloned voice with reference audio."
+                )
 
         # Concatenate all chunks
         if audio_chunks:
             full_audio = torch.cat(audio_chunks, dim=1)
         else:
             # Return empty audio if no chunks
-            full_audio = torch.zeros(1, self._sample_rate)  # 1 second of silence
+            full_audio = torch.zeros(1, self._sample_rate)
 
         return full_audio
 
